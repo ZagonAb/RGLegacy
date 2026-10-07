@@ -20,6 +20,17 @@ FocusScope {
     property bool restoringState: false
     property alias consoleYears: consoleYearsObj.data
     property alias consoleColors: consoleColorsObj.data
+    property bool debugLayout: false
+
+    LayoutMetrics {
+        id: metrics
+        viewportWidth: root.width
+        viewportHeight: root.height
+    }
+
+    function fs(vhValue, minPx) {
+        return Math.max(minPx || 9, vhValue * vh)
+    }
 
     ConsoleYears {
         id: consoleYearsObj
@@ -31,31 +42,31 @@ FocusScope {
 
     function getBatteryIcon() {
         if (isNaN(api.device.batteryPercent) || api.device.batteryCharging) {
-            return "assets/icons/charging.png";
+            return "assets/icons/charging.png"
         } else {
-            const batteryPercent = api.device.batteryPercent * 100;
+            const batteryPercent = api.device.batteryPercent * 100
             if (batteryPercent <= 20) {
-                return "assets/icons/10.png";
+                return "assets/icons/10.png"
             } else if (batteryPercent <= 40) {
-                return "assets/icons/25.png";
+                return "assets/icons/25.png"
             } else if (batteryPercent <= 60) {
-                return "assets/icons/50.png";
+                return "assets/icons/50.png"
             } else if (batteryPercent <= 80) {
-                return "assets/icons/75.png";
+                return "assets/icons/75.png"
             } else if (batteryPercent <= 90) {
-                return "assets/icons/90.png";
+                return "assets/icons/90.png"
             } else {
-                return "assets/icons/95.png";
+                return "assets/icons/95.png"
             }
         }
     }
 
     function getConsoleYear(shortName) {
-        return consoleYears[shortName.toLowerCase()] || "none";
+        return consoleYears[shortName.toLowerCase()] || "none"
     }
 
     function getColorForSystem(shortName) {
-        return consoleColors[shortName.toLowerCase()] || "#000000";
+        return consoleColors[shortName.toLowerCase()] || "#000000"
     }
 
     SortFilterProxyModel {
@@ -66,15 +77,15 @@ FocusScope {
             ExpressionFilter {
                 expression: {
                     if (root.filterState === 1) {
-                        return model.favorite === true;
+                        return model.favorite === true
                     }
                     if (root.filterState === 2) {
-                        var currentDate = new Date();
-                        var sevenDaysAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-                        var lastPlayedDate = new Date(model.lastPlayed);
-                        return lastPlayedDate >= sevenDaysAgo && (model.playTime / 60) > 1;
+                        var currentDate = new Date()
+                        var sevenDaysAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000)
+                        var lastPlayedDate = new Date(model.lastPlayed)
+                        return lastPlayedDate >= sevenDaysAgo && (model.playTime / 60) > 1
                     }
-                    return true;
+                    return true
                 }
             }
         }
@@ -112,23 +123,23 @@ FocusScope {
         anchors {
             top: parent.top
             left: parent.left
-            topMargin: 20
-            leftMargin: 20
+            topMargin: metrics.clockTopMargin
+            leftMargin: metrics.clockLeftMargin
         }
         color: "white"
-        font.pixelSize: root.width * 0.025
+        font.pixelSize: metrics.clockFontSize
         font.bold: true
         visible: collectionsVisible
 
         function formatTime() {
-            let date = new Date();
-            let hours = date.getHours();
-            let minutes = date.getMinutes();
-            let ampm = hours >= 12 ? "PM" : "AM";
-            hours = hours % 12;
-            hours = hours ? hours : 12;
-            let minutesStr = minutes < 10 ? "0" + minutes : minutes;
-            return hours + ":" + minutesStr + " " + ampm;
+            let date = new Date()
+            let hours = date.getHours()
+            let minutes = date.getMinutes()
+            let ampm = hours >= 12 ? "PM" : "AM"
+            hours = hours % 12
+            hours = hours ? hours : 12
+            let minutesStr = minutes < 10 ? "0" + minutes : minutes
+            return hours + ":" + minutesStr + " " + ampm
         }
         text: formatTime()
         Timer {
@@ -142,10 +153,10 @@ FocusScope {
     Item {
         id: batteryIndicator
         width: parent.width
-        height: 40
+        height: metrics.batteryItemHeight
         anchors {
             top: parent.top
-            topMargin: root.height * 0.04
+            topMargin: metrics.batteryTopMargin
         }
 
         Timer {
@@ -160,7 +171,7 @@ FocusScope {
         Row {
             anchors {
                 right: parent.right
-                rightMargin: 10
+                rightMargin: metrics.batteryRightMargin
                 verticalCenter: parent.verticalCenter
             }
             spacing: 5
@@ -168,8 +179,8 @@ FocusScope {
             Image {
                 id: batteryIcon
                 source: getBatteryIcon()
-                width: root.width * 0.1
-                height: root.height * 0.05
+                width: metrics.batteryIconWidth
+                height: metrics.batteryIconHeight
                 fillMode: Image.PreserveAspectFit
                 mipmap: true
                 asynchronous: true
@@ -232,116 +243,108 @@ FocusScope {
             }
 
             Row {
-                width: parent.width
-                height: parent.height
-                spacing: root.width * 0.05
-                padding: root.width * 0.01
+                id: headerTabs
+                x: metrics.headerTabsX
+                y: metrics.headerTop
+                spacing: metrics.headerTabSpacing
+
+                Text {
+                    id: favoritesText
+                    color: "white"
+                    opacity: root.filterState === 1 ? 1.0 : 0.2
+                    font.pixelSize: metrics.headerFontSize
+                    font.bold: true
+                    text: "Favorites"
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            naviSound.play()
+                            root.filterState = 1
+                            gameListView.currentIndex = 0
+                            gameListView.updateGameImage()
+                        }
+                    }
+                }
+
+                Text {
+                    id: allText
+                    color: "white"
+                    opacity: root.filterState === 0 ? 1.0 : 0.2
+                    font.pixelSize: metrics.headerFontSize
+                    font.bold: true
+                    text: "All"
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            naviSound.play()
+                            root.filterState = 0
+                            gameListView.currentIndex = 0
+                            gameListView.updateGameImage()
+                        }
+                    }
+                }
+
+                Text {
+                    id: recentText
+                    color: "white"
+                    opacity: root.filterState === 2 ? 1.0 : 0.2
+                    font.pixelSize: metrics.headerFontSize
+                    font.bold: true
+                    text: "Recently Played"
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            naviSound.play()
+                            root.filterState = 2
+                            gameListView.currentIndex = 0
+                            gameListView.updateGameImage()
+                        }
+                    }
+                }
+            }
+
+            Row {
+                id: headerCollection
+                x: metrics.headerNameRightAligned ? parent.width - metrics.gamesGap - width
+                : metrics.headerNameX
+                y: metrics.headerTop
+                spacing: metrics.headerNameLogoSpacing
+
+                Text {
+                    color: "white"
+                    font.pixelSize: metrics.headerFontSize
+                    font.bold: true
+                    text: currentShortName
+                }
 
                 Item {
-                    width: root.width * 0.01
-                    height: parent.height
-                }
+                    width: metrics.headerLogoSize
+                    height: metrics.headerLogoSize
 
-                Row {
-                    width: parent.width / 2
-                    height: parent.height
-                    spacing: root.width * 0.03
-
-                    Text {
-                        id: favoritesText
-                        color: "white"
-                        opacity: root.filterState === 1 ? 1.0 : 0.2
-                        font.pixelSize: root.width * 0.02
-                        font.bold: true
-                        text: "Favorites"
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                naviSound.play();
-                                root.filterState = 1;
-                                gameListView.currentIndex = 0;
-                                gameListView.updateGameImage();
-                            }
-                        }
+                    Image {
+                        id: collectionImage
+                        source: currentShortName ? "assets/shortnames/" + currentShortName + ".png" : ""
+                        y: metrics.headerLogoOffsetY
+                        width: parent.width
+                        height: parent.height
+                        fillMode: Image.PreserveAspectFit
+                        mipmap: true
+                        asynchronous: true
+                        visible: status !== Image.Error
                     }
 
-                    Text {
-                        id: allText
-                        color: "white"
-                        opacity: root.filterState === 0 ? 1.0 : 0.2
-                        font.pixelSize: root.width * 0.02
-                        font.bold: true
-                        text: "All"
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                naviSound.play();
-                                root.filterState = 0;
-                                gameListView.currentIndex = 0;
-                                gameListView.updateGameImage();
-                            }
-                        }
-                    }
-
-                    Text {
-                        id: recentText
-                        color: "white"
-                        opacity: root.filterState === 2 ? 1.0 : 0.2
-                        font.pixelSize: root.width * 0.02
-                        font.bold: true
-                        text: "Recently Played"
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                naviSound.play();
-                                root.filterState = 2;
-                                gameListView.currentIndex = 0;
-                                gameListView.updateGameImage();
-                            }
-                        }
-                    }
-                }
-
-                Row {
-                    width: parent.width / 3
-                    height: parent.height
-                    spacing: root.width * 0.15
-
-                    Text {
-                        color: "white"
-                        font.pixelSize: root.width * 0.02
-                        font.bold: true
-                        text: currentShortName
-                    }
-
-                    Item {
-                        width: parent.width * 0.14
-                        height: parent.height * 0.14
-                        y: -root.height * 0.03
-
-                        Image {
-                            id: collectionImage
-                            source: currentShortName ? "assets/shortnames/" + currentShortName + ".png" : ""
-                            width: parent.width
-                            height: parent.height
-                            fillMode: Image.PreserveAspectFit
-                            mipmap: true
-                            asynchronous: true
-                            visible: status !== Image.Error
-                        }
-
-                        Image {
-                            id: defaultImage
-                            source: "assets/shortnames/default.png"
-                            width: parent.width
-                            height: parent.height
-                            fillMode: Image.PreserveAspectFit
-                            mipmap: true
-                            visible: collectionImage.status === Image.Error
-                        }
+                    Image {
+                        id: defaultImage
+                        source: "assets/shortnames/default.png"
+                        y: metrics.headerLogoOffsetY
+                        width: parent.width
+                        height: parent.height
+                        fillMode: Image.PreserveAspectFit
+                        mipmap: true
+                        visible: collectionImage.status === Image.Error
                     }
                 }
             }
@@ -349,16 +352,13 @@ FocusScope {
 
         Rectangle {
             id: gameRectangle
-            anchors {
-                left: parent.left
-                leftMargin: 20
-                verticalCenter: parent.verticalCenter
-            }
-            width: parent.width * 0.4
-            height: parent.height * 0.80
+            x: metrics.listRect.x
+            y: metrics.listRect.y - metrics.listPanelPad
+            width: metrics.listRect.width
+            height: metrics.listRect.height + 2 * metrics.listPanelPad
             color: "black"
             opacity: 0.2
-            radius: 10
+            radius: metrics.listPanelRadius
             border.color: "transparent"
         }
 
@@ -366,6 +366,20 @@ FocusScope {
             id: gameListView
             opacity: gamesVisible ? 1 : 0
             visible: gamesVisible
+            Behavior on opacity {
+                NumberAnimation { duration: 300 }
+            }
+        }
+
+        ListScrollBar {
+            id: gameListScrollBar
+            view: gameListView
+            minThumbHeight: metrics.listScrollBarMinThumb
+            x: metrics.listScrollBarRect.x
+            y: metrics.listScrollBarRect.y
+            width: metrics.listScrollBarRect.width
+            height: metrics.listScrollBarRect.height
+            opacity: gamesVisible && metrics.listScrollBarVisible ? 1 : 0
             Behavior on opacity {
                 NumberAnimation { duration: 300 }
             }
@@ -379,7 +393,7 @@ FocusScope {
         Item {
             id: buttons
             width: parent.width
-            height: parent.height * 0.08
+            height: parent.height * metrics.buttonsBarHeightFraction
             anchors.right: parent.right
             anchors.bottom: parent.bottom
 
@@ -391,13 +405,13 @@ FocusScope {
                     }
                     return "Game " + (gameListView.currentIndex + 1) + "/" + gameListView.model.count
                 }
-                font.pixelSize: root.width * 0.022
+                font.pixelSize: metrics.gamesCountFontSize
                 color: "white"
                 font.bold: true
                 y: gamesVisible ? parent.height - height : parent.height
                 anchors {
                     left: parent.left
-                    leftMargin: parent.width * 0.17
+                    leftMargin: metrics.gamesCountLeftMargin
                 }
 
                 SequentialAnimation on y {
@@ -421,11 +435,11 @@ FocusScope {
 
             Row {
                 id: mainRow
-                spacing: root.width * 0.02
+                spacing: metrics.buttonsSpacing
 
                 anchors {
                     right: parent.right
-                    rightMargin: root.width * 0.1
+                    rightMargin: metrics.buttonsRightMargin
                 }
 
                 y: buttons.height
@@ -458,12 +472,12 @@ FocusScope {
 
                     Row {
                         id: row1
-                        spacing: root.width * 0.001
+                        spacing: metrics.buttonInnerSpacing
                         Image {
                             id: row1Icon
                             source: "assets/icons/x.png"
-                            width: root.width * 0.032
-                            height: root.width * 0.032
+                            width: metrics.buttonIconSize
+                            height: metrics.buttonIconSize
                             mipmap: true
                             layer.enabled: true
                             layer.effect: DropShadow {
@@ -477,7 +491,7 @@ FocusScope {
                         Text {
                             text: "Favorite"
                             color: "white"
-                            font.pixelSize: root.width * 0.021
+                            font.pixelSize: metrics.buttonFontSize
                             font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                             layer.enabled: true
@@ -495,8 +509,8 @@ FocusScope {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            faviSound.play();
-                            gameListView.toggleFavorite();
+                            faviSound.play()
+                            gameListView.toggleFavorite()
                         }
                     }
                 }
@@ -509,11 +523,11 @@ FocusScope {
 
                     Row {
                         id: row2
-                        spacing: root.width * 0.001
+                        spacing: metrics.buttonInnerSpacing
                         Image {
                             source: "assets/icons/a.png"
-                            width: root.width * 0.032
-                            height: root.width * 0.032
+                            width: metrics.buttonIconSize
+                            height: metrics.buttonIconSize
                             mipmap: true
                             layer.enabled: true
                             layer.effect: DropShadow {
@@ -527,7 +541,7 @@ FocusScope {
                         Text {
                             text: "OK"
                             color: "white"
-                            font.pixelSize: root.width * 0.021
+                            font.pixelSize: metrics.buttonFontSize
                             font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                             layer.enabled: true
@@ -545,8 +559,8 @@ FocusScope {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            naviSound.play();
-                            gameListView.handleGameLaunch();
+                            naviSound.play()
+                            gameListView.handleGameLaunch()
                         }
                     }
                 }
@@ -559,11 +573,11 @@ FocusScope {
 
                     Row {
                         id: row3
-                        spacing: root.width * 0.001
+                        spacing: metrics.buttonInnerSpacing
                         Image {
                             source: "assets/icons/y.png"
-                            width: root.width * 0.032
-                            height: root.width * 0.032
+                            width: metrics.buttonIconSize
+                            height: metrics.buttonIconSize
                             mipmap: true
                             layer.enabled: true
                             layer.effect: DropShadow {
@@ -577,7 +591,7 @@ FocusScope {
                         Text {
                             text: "Filter"
                             color: "white"
-                            font.pixelSize: root.width * 0.021
+                            font.pixelSize: metrics.buttonFontSize
                             font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                             layer.enabled: true
@@ -597,14 +611,14 @@ FocusScope {
                         onClicked: {
                             if (gameImage && gameImage.isVideoPlaying) {
                                 if (gameImage.filterBlockedNotification) {
-                                    gameImage.filterBlockedNotification.show();
+                                    gameImage.filterBlockedNotification.show()
                                 }
-                                return;
+                                return
                             }
-                            naviSound.play();
-                            root.filterState = (root.filterState + 1) % 3;
-                            gameListView.currentIndex = 0;
-                            gameListView.updateGameImage();
+                            naviSound.play()
+                            root.filterState = (root.filterState + 1) % 3
+                            gameListView.currentIndex = 0
+                            gameListView.updateGameImage()
                         }
                     }
                 }
@@ -617,11 +631,11 @@ FocusScope {
 
                     Row {
                         id: row4
-                        spacing: root.width * 0.001
+                        spacing: metrics.buttonInnerSpacing
                         Image {
                             source: "assets/icons/b.png"
-                            width: root.width * 0.032
-                            height: root.width * 0.032
+                            width: metrics.buttonIconSize
+                            height: metrics.buttonIconSize
                             mipmap: true
                             layer.enabled: true
                             layer.effect: DropShadow {
@@ -635,7 +649,7 @@ FocusScope {
                         Text {
                             text: "Back"
                             color: "white"
-                            font.pixelSize: root.width * 0.021
+                            font.pixelSize: metrics.buttonFontSize
                             font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                             layer.enabled: true
@@ -653,15 +667,15 @@ FocusScope {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            naviSound.play();
+                            naviSound.play()
                             if (gameImage && gameImage.isVideoType) {
-                                gameImage.resetMedia();
+                                gameImage.resetMedia()
                             }
-                            collectionsVisible = true;
-                            collectionsFocused = true;
-                            gamesVisible = false;
-                            gamesFocused = false;
-                            systemView.forceActiveFocus();
+                            collectionsVisible = true
+                            collectionsFocused = true
+                            gamesVisible = false
+                            gamesFocused = false
+                            systemView.forceActiveFocus()
                         }
                     }
                 }
@@ -683,9 +697,9 @@ FocusScope {
 
         Rectangle {
             id: letterBg
-            width: root.width * 0.22
-            height: root.height * 0.32
-            radius: root.width * 0.025
+            width: metrics.alphaBoxWidth
+            height: metrics.alphaBoxHeight
+            radius: metrics.alphaBoxRadius
             color: "#CC000000"
         }
 
@@ -694,7 +708,7 @@ FocusScope {
             radius: letterBg.radius
             color: "transparent"
             border.color: getColorForSystem(currentShortName)
-            border.width: root.width * 0.004
+            border.width: metrics.alphaBorderWidth
             opacity: 0.85
         }
 
@@ -702,7 +716,7 @@ FocusScope {
             anchors.centerIn: parent
             text: gameListView.alphaScrollLetter
             color: "white"
-            font.pixelSize: root.width * 0.14
+            font.pixelSize: metrics.alphaLetterFontSize
             font.bold: true
             style: Text.Outline
             styleColor: "#80000000"
@@ -711,36 +725,35 @@ FocusScope {
 
     Keys.onPressed: {
         if (event.isAutoRepeat) {
-            return;
+            return
         }
 
         if (gamesVisible && gameImage.visible) {
             if (api.keys.isNextPage(event)) {
-                event.accepted = true;
-                var newVolume = Math.min(1.0, gameImage.savedVolume + 0.05);
-                gameImage.setVideoVolume(newVolume);
-                showVolumeFeedback(true);
-            }
-            else if (api.keys.isPrevPage(event)) {
-                event.accepted = true;
-                var newVolume = Math.max(0.01, gameImage.savedVolume - 0.05);
-                gameImage.setVideoVolume(newVolume);
-                showVolumeFeedback(false);
+                event.accepted = true
+                var newVolumeUp = Math.min(1.0, gameImage.savedVolume + 0.05)
+                gameImage.setVideoVolume(newVolumeUp)
+                showVolumeFeedback(true)
+            } else if (api.keys.isPrevPage(event)) {
+                event.accepted = true
+                var newVolumeDown = Math.max(0.01, gameImage.savedVolume - 0.05)
+                gameImage.setVideoVolume(newVolumeDown)
+                showVolumeFeedback(false)
             }
         }
     }
 
     function showVolumeFeedback(isUp) {
-        volumeFeedback.text = Math.round(gameImage.savedVolume * 100) + "%";
-        volumeFeedback.opacity = 1;
-        volumeFeedbackTimer.restart();
+        volumeFeedback.text = Math.round(gameImage.savedVolume * 100) + "%"
+        volumeFeedback.opacity = 1
+        volumeFeedbackTimer.restart()
     }
 
     Item {
         id: volumeFeedbackContainer
         anchors.centerIn: parent
-        width: volumeFeedback.width + root.width * 0.06
-        height: volumeFeedback.height + root.height * 0.025
+        width: volumeFeedback.width + metrics.volumeFeedbackPaddingX
+        height: volumeFeedback.height + metrics.volumeFeedbackPaddingY
         z: 10000
         opacity: volumeFeedback.opacity
 
@@ -774,7 +787,7 @@ FocusScope {
             id: volumeFeedback
             anchors.centerIn: parent
             color: "white"
-            font.pixelSize: root.width * 0.03
+            font.pixelSize: metrics.volumeFeedbackFontSize
             font.bold: true
             opacity: 0
 
@@ -793,7 +806,7 @@ FocusScope {
     Connections {
         target: proxyModel
         function onCountChanged() {
-            gameListView.updateGameImage();
+            gameListView.updateGameImage()
         }
     }
 
@@ -801,11 +814,11 @@ FocusScope {
         target: systemView
         function onCurrentIndexChanged() {
             if (systemView.currentIndex >= 0) {
-                const selectedCollection = api.collections.get(systemView.currentIndex);
-                proxyModel.sourceModel = selectedCollection.games;
+                const selectedCollection = api.collections.get(systemView.currentIndex)
+                proxyModel.sourceModel = selectedCollection.games
                 if (!root.restoringState) {
-                    gameListView.currentIndex = 0;
-                    gameListView.updateGameImage();
+                    gameListView.currentIndex = 0
+                    gameListView.updateGameImage()
                 }
             }
         }
@@ -816,48 +829,57 @@ FocusScope {
         interval: 150
         repeat: false
         onTriggered: {
-            const savedCollectionIndex = api.memory.get('lastCollectionIndex');
-            const savedGameTitle       = api.memory.get('lastGameTitle');
+            const savedCollectionIndex = api.memory.get('lastCollectionIndex')
+            const savedGameTitle = api.memory.get('lastGameTitle')
 
-            if (savedCollectionIndex === undefined || savedGameTitle === undefined) return;
+            if (savedCollectionIndex === undefined || savedGameTitle === undefined) return
 
-            api.memory.unset('lastCollectionIndex');
-            api.memory.unset('lastGameTitle');
+                api.memory.unset('lastCollectionIndex')
+                api.memory.unset('lastGameTitle')
 
-            const collIdx = parseInt(savedCollectionIndex);
+                const collIdx = parseInt(savedCollectionIndex)
 
-            if (collIdx < 0 || collIdx >= api.collections.count) return;
+                if (collIdx < 0 || collIdx >= api.collections.count) return
 
-            root.restoringState = true;
+                    root.restoringState = true
 
-            systemView.currentIndex = collIdx;
+                    systemView.currentIndex = collIdx
 
-            Qt.callLater(function() {
-                let targetIdx = 0;
-                for (let i = 0; i < proxyModel.count; i++) {
-                    const g = proxyModel.get(i);
-                    if (g && g.title === savedGameTitle) {
-                        targetIdx = i;
-                        break;
-                    }
-                }
+                    Qt.callLater(function() {
+                        let targetIdx = 0
+                        for (let i = 0; i < proxyModel.count; i++) {
+                            const g = proxyModel.get(i)
+                            if (g && g.title === savedGameTitle) {
+                                targetIdx = i
+                                break
+                            }
+                        }
 
-                gameListView.currentIndex = targetIdx;
-                gameListView.positionViewAtIndex(targetIdx, ListView.Center);
-                gameListView.updateGameImage();
+                        gameListView.currentIndex = targetIdx
+                        gameListView.positionViewAtIndex(targetIdx, ListView.Center)
+                        gameListView.updateGameImage()
 
-                collectionsVisible = false;
-                collectionsFocused = false;
-                gamesVisible = true;
-                gamesFocused = true;
-                gameListView.forceActiveFocus();
+                        collectionsVisible = false
+                        collectionsFocused = false
+                        gamesVisible = true
+                        gamesFocused = true
+                        gameListView.forceActiveFocus()
 
-                root.restoringState = false;
-            });
+                        root.restoringState = false
+                    })
         }
     }
 
+    DebugOverlay {
+        id: debugOverlay
+        visible: root.debugLayout
+        sceneWidth: root.width
+        sceneHeight: root.height
+        layoutMode: metrics.profile
+        vh: metrics.vh
+    }
+
     Component.onCompleted: {
-        restoreTimer.start();
+        restoreTimer.start()
     }
 }

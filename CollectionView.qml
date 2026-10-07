@@ -4,16 +4,16 @@ import QtGraphicalEffects 1.12
 PathView {
     id: systemView
     width: parent.width
-    height: parent.height * 0.45
+    height: parent.height * metrics.collectionHeight
 
     anchors {
         horizontalCenter: parent.horizontalCenter
         top: parent.top
-        topMargin: parent.height * 0.15
+        topMargin: parent.height * metrics.collectionTop
     }
 
     model: api.collections
-    pathItemCount: Math.min(5, model.count)
+    pathItemCount: Math.min(metrics.collectionVisibleItems, model.count)
     preferredHighlightBegin: 0.5
     preferredHighlightEnd: 0.5
     highlightRangeMode: PathView.StrictlyEnforceRange
@@ -21,15 +21,16 @@ PathView {
     opacity: collectionsVisible ? 1 : 0
     visible: collectionsVisible
 
-    property real itemSpacing: width * 0.24
-    property real delegateSize: Math.min(itemSpacing * 0.9, height * 0.9)
+    property real step: width * metrics.collectionStep
+    property real itemSpacing: pathItemCount > 1 ? step * pathItemCount / (pathItemCount - 1) : step
+    property real delegateSize: Math.min(step * metrics.collectionDelegateK, height * 0.9)
 
     path: Path {
-        startX: systemView.width/2 - ((systemView.pathItemCount - 1) * systemView.itemSpacing)/2
-        startY: systemView.height/2
+        startX: systemView.width / 2 - ((systemView.pathItemCount - 1) * systemView.itemSpacing) / 2
+        startY: systemView.height / 2
         PathLine {
-            x: systemView.width/2 + ((systemView.pathItemCount - 1) * systemView.itemSpacing)/2
-            y: systemView.height/2
+            x: systemView.width / 2 + ((systemView.pathItemCount - 1) * systemView.itemSpacing) / 2
+            y: systemView.height / 2
         }
     }
 
@@ -38,12 +39,31 @@ PathView {
 
         width: systemView.delegateSize
         height: systemView.delegateSize
-        scale: PathView.isCurrentItem ? 1 : 0.85
+        scale: PathView.isCurrentItem ? 1 : metrics.collectionSideScale
         opacity: {
             const distance = Math.abs(PathView.view.currentIndex - index)
             return distance <= 2 ? 1 - (distance * 0.15) : 0.7
         }
         z: PathView.isCurrentItem ? 1 : 0
+
+        readonly property real slotOffset: (x + width / 2 - systemView.width / 2) / systemView.step
+
+        function shiftFor(d) {
+            var a = Math.abs(d)
+            if (a < 0.0001) return 0
+                var near = metrics.collectionShiftNear * systemView.step
+                var far = metrics.collectionShiftFar * systemView.step
+                var v
+                if (a <= 1)
+                    v = near * Math.sin(Math.PI / 2 * a)
+                    else if (a <= 2)
+                        v = near + (far - near) * (1 - Math.cos(Math.PI * (a - 1))) / 2
+                        else
+                            v = far
+                            return d < 0 ? -v : v
+        }
+
+        transform: Translate { x: delegateItem.shiftFor(delegateItem.slotOffset) }
 
         Rectangle {
             id: selectionRect
@@ -51,7 +71,7 @@ PathView {
                 fill: parent
                 margins: -parent.width * 0.0
                 topMargin: -parent.width * 0.02
-                bottomMargin: -systemView.height * 0.45
+                bottomMargin: -systemView.height * metrics.collectionCapsuleExtra
             }
             color: delegateItem.PathView.isCurrentItem ? "#33FFFFFF" : "transparent"
             border.color: "white"
@@ -74,10 +94,8 @@ PathView {
 
                     if (clickCount === 1) {
                         systemView.currentIndex = index
-                    }
-                    else if (clickCount >= 2) {
+                    } else if (clickCount >= 2) {
                         clickCount = 0
-
                         systemView.currentIndex = index
                         naviSound.play()
 
@@ -109,7 +127,7 @@ PathView {
 
             onStatusChanged: {
                 if (status === Image.Error) {
-                    source = "assets/shortnames/default.png";
+                    source = "assets/shortnames/default.png"
                 }
             }
         }
@@ -124,17 +142,21 @@ PathView {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
+                width: delegateItem.width * metrics.collectionNameWidthFactor
+                horizontalAlignment: Text.AlignHCenter
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: 8
                 text: modelData.shortName.toUpperCase() || ""
                 color: "white"
                 font.bold: true
-                font.pixelSize: delegateItem.width * 0.10
+                font.pixelSize: Math.max(metrics.collectionNameMinFont, delegateItem.width * metrics.collectionNameFontFactor)
             }
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "(" + getConsoleYear(modelData.shortName) + ")"
                 color: "white"
-                font.pixelSize: delegateItem.width * 0.12
+                font.pixelSize: Math.max(metrics.collectionYearMinFont, delegateItem.width * metrics.collectionYearFontFactor)
                 font.bold: true
             }
         }
@@ -165,53 +187,51 @@ PathView {
 
     Keys.onPressed: {
         if (event.isAutoRepeat) {
-            return;
+            return
         }
 
         if (api.keys.isAccept(event)) {
-            naviSound.play();
+            naviSound.play()
             if (gameImage.videoLoader) {
-                gameImage.videoLoader.active = true;
+                gameImage.videoLoader.active = true
             }
-            event.accepted = true;
-            collectionsVisible = false;
-            collectionsFocused = false;
-            gamesVisible = true;
-            gamesFocused = true;
-            gameListView.forceActiveFocus();
-        }
-        else if (api.keys.isNextPage(event)) {
-            naviSound.play();
-            event.accepted = true;
-            incrementCurrentIndex();
-        }
-        else if (api.keys.isPrevPage(event)) {
-            naviSound.play();
-            event.accepted = true;
-            decrementCurrentIndex();
+            event.accepted = true
+            collectionsVisible = false
+            collectionsFocused = false
+            gamesVisible = true
+            gamesFocused = true
+            gameListView.forceActiveFocus()
+        } else if (api.keys.isNextPage(event)) {
+            naviSound.play()
+            event.accepted = true
+            incrementCurrentIndex()
+        } else if (api.keys.isPrevPage(event)) {
+            naviSound.play()
+            event.accepted = true
+            decrementCurrentIndex()
         }
     }
 
     onCurrentIndexChanged: {
-        const selectedCollection = api.collections.get(currentIndex);
-        proxyModel.sourceModel = selectedCollection.games;
-        currentCollectionName = model.get(currentIndex).name;
-        currentShortName = model.get(currentIndex).shortName;
-        root.backgroundColor = getColorForSystem(currentShortName);
+        const selectedCollection = api.collections.get(currentIndex)
+        proxyModel.sourceModel = selectedCollection.games
+        currentCollectionName = model.get(currentIndex).name
+        currentShortName = model.get(currentIndex).shortName
+        root.backgroundColor = getColorForSystem(currentShortName)
 
         if (gameImage && gameImage.isVideoType && gameImage.resetMedia) {
-            gameImage.resetMedia();
+            gameImage.resetMedia()
         }
-        proxyModel.invalidate();
+        proxyModel.invalidate()
     }
 
     Component.onCompleted: {
         currentIndex = 0
-        const initialCollection = api.collections.get(currentIndex);
-        proxyModel.sourceModel = initialCollection.games;
-        currentCollectionName = model.get(currentIndex).name;
-        currentShortName = model.get(currentIndex).shortName;
-        root.backgroundColor = getColorForSystem(currentShortName);
-        game = proxyModel.get(gameListView.currentIndex);
+        const initialCollection = api.collections.get(currentIndex)
+        proxyModel.sourceModel = initialCollection.games
+        currentCollectionName = model.get(currentIndex).name
+        currentShortName = model.get(currentIndex).shortName
+        root.backgroundColor = getColorForSystem(currentShortName)
+        game = proxyModel.get(gameListView.currentIndex)
     }
 }
