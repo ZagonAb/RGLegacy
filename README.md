@@ -6,7 +6,7 @@
 > 📢 Maintenance mode: the theme is stable and only receives occasional fixes.
 
 
-![screen](https://github.com/ZagonAb/Anbernic-Theme/blob/c5a4360ae8769f8f09b3fa907ee8cd7fc1499af6/.meta/screenshots/screen0.png)
+![screen](https://github.com/ZagonAb/Anbernic-Theme/blob/85360e9813fac87c902094ae421b03298fe42398/.meta/screenshots/aspect-ratio-showcase-rglegacy.png)
 
 ----
 
