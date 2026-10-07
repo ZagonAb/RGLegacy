@@ -1,6 +1,6 @@
 # RGLegacy 
 
-- A theme for Pegasus Frontend, inspired by Anbernic's RGLauncher interface.
+- A theme for Pegasus Frontend, inspired by Anbernic's RGLauncher.
 
 
 > 📢 Maintenance mode: the theme is stable and only receives occasional fixes.
