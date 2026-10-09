@@ -73,15 +73,16 @@ QtObject {
     readonly property real gameCountFontSize: Math.max(11, px(25.6))
     readonly property real gameCountBottomMargin: px(25.6)
 
+    readonly property real topBarHeight: pick(px(84), px(84), px(70), px(70))
+
     readonly property real clockFontSize: pick(vw * 2.5, vw * 2.5, vmin * 3.6, vmin * 3.6)
-    readonly property real clockTopMargin: pick(px(20), px(20), gamesGap, gamesGap)
     readonly property real clockLeftMargin: pick(px(20), px(20), gamesGap, gamesGap)
 
-    readonly property real batteryItemHeight: px(40)
-    readonly property real batteryTopMargin: pick(vh * 4, vh * 4, vh * 3, vh * 3)
-    readonly property real batteryRightMargin: pick(px(10), px(10), gamesGap, gamesGap)
-    readonly property real batteryIconWidth: pick(vw * 10, vw * 10, vmin * 10, vmin * 10)
-    readonly property real batteryIconHeight: pick(vh * 5, vh * 5, vmin * 4.5, vmin * 4.5)
+    readonly property bool batteryShowPercent: pick(true, true, true, true)
+    readonly property real batteryIconSize: pick(px(48), px(48), px(52), px(52))
+    readonly property real batteryPercentFontSize: pick(px(24), px(24), px(20), px(20))
+    readonly property real batteryGap: px(6)
+    readonly property real batteryRightMargin: pick(px(20), px(20), gamesGap, gamesGap)
 
     readonly property real listWidthFraction: pick(0.40, 0.42, 1.0, 1.0)
     readonly property real listHeightFraction: pick(0.72, 0.72, 0.33, 0.43)
@@ -146,6 +147,13 @@ QtObject {
             return Qt.rect(x, (viewportHeight - h) / 2, viewportWidth - x - g, h)
     }
 
+    readonly property real volumeBarWidth: Math.max(volumeMinWidth, mediaRect.width * volumeWidthFraction)
+    readonly property real volumeBarHeight: mediaRect.height * volumeHeightFraction
+    readonly property real volumeBarRightMargin: mediaRect.width * 0.01
+    readonly property rect volumeBarRect: Qt.rect(mediaRect.x + mediaRect.width - volumeBarRightMargin - volumeBarWidth,
+                                                  mediaRect.y + (mediaRect.height - volumeBarHeight) / 2,
+                                                  volumeBarWidth, volumeBarHeight)
+
     readonly property rect listViewRect: Qt.rect(listRect.x, listRect.y,
                                                  listRect.width - listScrollBarReserve, listRect.height)
     readonly property rect listScrollBarRect: Qt.rect(listRect.x + listRect.width - listScrollBarMargin - listScrollBarWidth,
@@ -180,9 +188,11 @@ QtObject {
     readonly property real alphaBorderWidth: vw * 0.4
     readonly property real alphaLetterFontSize: vw * 14
 
-    readonly property real volumeFeedbackFontSize: vw * 3
-    readonly property real volumeFeedbackPaddingX: vw * 6
-    readonly property real volumeFeedbackPaddingY: vh * 2.5
+    readonly property real volumeFeedbackFontSize: pick(px(17), px(17), px(15), px(15))
+    readonly property real volumeFeedbackPaddingX: px(10)
+    readonly property real volumeFeedbackPaddingY: px(8)
+    readonly property real volumeFeedbackGap: px(6)
+    readonly property real volumeFeedbackRadius: px(8)
 
     readonly property bool gameInfoSideBySide: stacked
 

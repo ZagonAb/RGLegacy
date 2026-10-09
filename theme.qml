@@ -28,37 +28,12 @@ FocusScope {
         viewportHeight: root.height
     }
 
-    function fs(vhValue, minPx) {
-        return Math.max(minPx || 9, vhValue * vh)
-    }
-
     ConsoleYears {
         id: consoleYearsObj
     }
 
     ConsoleColors {
         id: consoleColorsObj
-    }
-
-    function getBatteryIcon() {
-        if (isNaN(api.device.batteryPercent) || api.device.batteryCharging) {
-            return "assets/icons/charging.png"
-        } else {
-            const batteryPercent = api.device.batteryPercent * 100
-            if (batteryPercent <= 20) {
-                return "assets/icons/10.png"
-            } else if (batteryPercent <= 40) {
-                return "assets/icons/25.png"
-            } else if (batteryPercent <= 60) {
-                return "assets/icons/50.png"
-            } else if (batteryPercent <= 80) {
-                return "assets/icons/75.png"
-            } else if (batteryPercent <= 90) {
-                return "assets/icons/90.png"
-            } else {
-                return "assets/icons/95.png"
-            }
-        }
     }
 
     function getConsoleYear(shortName) {
@@ -109,84 +84,17 @@ FocusScope {
     SoundEffect {
         id: naviSound
         source: "assets/sound/mov.wav"
-        volume: 0.05
+        volume: 0.2
     }
 
     SoundEffect {
         id: faviSound
         source: "assets/sound/fav.wav"
-        volume: 0.3
+        volume: 0.5
     }
 
-    Text {
-        id: clock
-        anchors {
-            top: parent.top
-            left: parent.left
-            topMargin: metrics.clockTopMargin
-            leftMargin: metrics.clockLeftMargin
-        }
-        color: "white"
-        font.pixelSize: metrics.clockFontSize
-        font.bold: true
-        visible: collectionsVisible
-
-        function formatTime() {
-            let date = new Date()
-            let hours = date.getHours()
-            let minutes = date.getMinutes()
-            let ampm = hours >= 12 ? "PM" : "AM"
-            hours = hours % 12
-            hours = hours ? hours : 12
-            let minutesStr = minutes < 10 ? "0" + minutes : minutes
-            return hours + ":" + minutesStr + " " + ampm
-        }
-        text: formatTime()
-        Timer {
-            running: true
-            interval: 1000
-            repeat: true
-            onTriggered: clock.text = clock.formatTime()
-        }
-    }
-
-    Item {
-        id: batteryIndicator
-        width: parent.width
-        height: metrics.batteryItemHeight
-        anchors {
-            top: parent.top
-            topMargin: metrics.batteryTopMargin
-        }
-
-        Timer {
-            id: batteryUpdateTimer
-            triggeredOnStart: true
-            interval: 5000
-            running: true
-            repeat: true
-            onTriggered: batteryIcon.source = getBatteryIcon()
-        }
-
-        Row {
-            anchors {
-                right: parent.right
-                rightMargin: metrics.batteryRightMargin
-                verticalCenter: parent.verticalCenter
-            }
-            spacing: 5
-
-            Image {
-                id: batteryIcon
-                source: getBatteryIcon()
-                width: metrics.batteryIconWidth
-                height: metrics.batteryIconHeight
-                fillMode: Image.PreserveAspectFit
-                mipmap: true
-                asynchronous: true
-                visible: collectionsVisible
-            }
-        }
+    TopBar {
+        id: topBar
     }
 
     CollectionView {
@@ -728,7 +636,7 @@ FocusScope {
             return
         }
 
-        if (gamesVisible && gameImage.visible) {
+        if (gamesVisible && gameImage.visible && gameImage.isVideoPlaying) {
             if (api.keys.isNextPage(event)) {
                 event.accepted = true
                 var newVolumeUp = Math.min(1.0, gameImage.savedVolume + 0.05)
@@ -744,6 +652,9 @@ FocusScope {
     }
 
     function showVolumeFeedback(isUp) {
+        if (!gameImage.isVideoPlaying) {
+            return
+        }
         volumeFeedback.text = Math.round(gameImage.savedVolume * 100) + "%"
         volumeFeedback.opacity = 1
         volumeFeedbackTimer.restart()
@@ -751,7 +662,8 @@ FocusScope {
 
     Item {
         id: volumeFeedbackContainer
-        anchors.centerIn: parent
+        x: metrics.volumeBarRect.x + (metrics.volumeBarRect.width - width) / 2
+        y: metrics.volumeBarRect.y + metrics.volumeBarRect.height + metrics.volumeFeedbackGap
         width: volumeFeedback.width + metrics.volumeFeedbackPaddingX
         height: volumeFeedback.height + metrics.volumeFeedbackPaddingY
         z: 10000
@@ -763,9 +675,9 @@ FocusScope {
 
         Rectangle {
             anchors.fill: parent
-            radius: 14
+            radius: metrics.volumeFeedbackRadius
             color: root.backgroundColor
-            opacity: 0.75
+            opacity: 0.9
 
             layer.enabled: true
             layer.effect: FastBlur {
@@ -776,7 +688,7 @@ FocusScope {
 
         Rectangle {
             anchors.fill: parent
-            radius: 14
+            radius: metrics.volumeFeedbackRadius
             color: "transparent"
             border.color: getColorForSystem(currentShortName)
             border.width: 0
@@ -801,6 +713,16 @@ FocusScope {
         id: volumeFeedbackTimer
         interval: 1000
         onTriggered: volumeFeedback.opacity = 0
+    }
+
+    Connections {
+        target: gameImage
+        function onVideoPlayingChanged(isPlaying) {
+            if (!isPlaying) {
+                volumeFeedbackTimer.stop()
+                volumeFeedback.opacity = 0
+            }
+        }
     }
 
     Connections {
